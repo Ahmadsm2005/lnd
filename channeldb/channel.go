@@ -1539,8 +1539,14 @@ func (c *OpenChannel) putChanStatus(status ChannelStatus,
 		}
 
 		// Add this status to the existing bitvector found in the DB.
+		added := status &^ channel.chanStatus
 		status = channel.chanStatus | status
 		channel.chanStatus = status
+
+		if added != 0 {
+		log.Infof("channeldb: chan %v status flags added=%v now=%v",
+			c.FundingOutpoint, added, status)
+		}
 
 		if err := putOpenChannel(chanBucket, channel); err != nil {
 			return err
@@ -1583,8 +1589,14 @@ func (c *OpenChannel) clearChanStatus(status ChannelStatus) error {
 		}
 
 		// Unset this bit in the bitvector on disk.
+		removed := status & channel.chanStatus
 		status = channel.chanStatus & ^status
 		channel.chanStatus = status
+
+		if removed != 0 {
+		log.Infof("channeldb: chan %v status flags removed=%v now=%v",
+			c.FundingOutpoint, removed, status)
+		}
 
 		return putOpenChannel(chanBucket, channel)
 	}, func() {}); err != nil {
